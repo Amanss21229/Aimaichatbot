@@ -61,16 +61,6 @@ async def main():
         workers=4
     )
     
-    # Add a simple test handler using decorator
-    @app.on_message(filters.command("test"))
-    async def test_handler(client, message):
-        print(f"🧪 TEST HANDLER triggered by {message.from_user.id}")
-        await message.reply_text("Test handler is working!")
-    
-    @app.on_message(filters.text)
-    async def catch_all_handler(client, message):
-        print(f"🔍 CATCH-ALL: Received message from {message.from_user.id}: {message.text[:50]}")
-    
     # Register all handlers
     print("📝 Registering handlers...")
     register_chat_handlers(app)
