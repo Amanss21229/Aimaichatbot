@@ -7,7 +7,7 @@ import os
 from pyrogram import filters
 from pyrogram.client import Client
 from pyrogram.types import Message
-from pyrogram.handlers.message_handler import MessageHandler
+from pyrogram.handlers import MessageHandler
 from pyrogram.errors import FloodWait
 import asyncio
 import db
@@ -261,3 +261,4 @@ def register_chat_handlers(app: Client):
     app.add_handler(MessageHandler(start_handler, filters.command("start") & private_filter))
     app.add_handler(MessageHandler(question_handler, filters.text & private_filter & ~filters.command(["start"])))
     app.add_handler(MessageHandler(image_handler, filters.photo & private_filter))
+    print("✅ Chat handlers registered")

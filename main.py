@@ -6,6 +6,7 @@ Initialize Pyrogram client, register handlers, start bot
 import os
 import asyncio
 from pyrogram.client import Client
+from pyrogram import StopPropagation
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -26,7 +27,15 @@ OWNER_ID = os.getenv("OWNER_ID", "0")
 # Bot start time for uptime calculation
 bot_start_time = datetime.now()
 
-async def main():
+# Initialize database and API client
+async def init_services():
+    """Initialize database and API client"""
+    print("🔧 Initializing database...")
+    await db.init_db()
+    print("🔧 Initializing API client...")
+    await api_client.init_session()
+
+def main():
     """Main function to run the bot"""
     
     # Check for required environment variables
@@ -35,28 +44,16 @@ async def main():
         print("Please set the following in Replit Secrets:")
         print("- TELEGRAM_BOT_TOKEN")
         print("- OWNER_ID")
-        print("- WEBSITE_API_URL (optional)")
-        print("- WEBSITE_API_KEY (optional)")
         return
     
     if not OWNER_ID or OWNER_ID == "0":
         print("⚠️ Warning: OWNER_ID not set! Bot admin features will be limited.")
     
-    # Initialize database
-    print("🔧 Initializing database...")
-    await db.init_db()
-    
-    # Initialize API client
-    print("🔧 Initializing API client...")
-    await api_client.init_session()
-    
     # Create Pyrogram client
     print("🤖 Starting Telegram Bot...")
     
-    # For bot-only mode, we can use a default API ID/Hash or user can provide their own
-    # These are public values for Pyrogram (you can use your own from my.telegram.org)
-    api_id = int(os.getenv("API_ID", "6"))  # Default Pyrogram test value
-    api_hash = os.getenv("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")  # Default Pyrogram test value
+    api_id = int(os.getenv("API_ID", "6"))
+    api_hash = os.getenv("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")
     
     app = Client(
         "neet_ai_bot",
@@ -72,32 +69,35 @@ async def main():
     register_group_handlers(app)
     register_admin_handlers(app)
     
-    # Start the bot
-    print("✅ Bot is starting...")
+    # Add startup handler
+    @app.on_message()
+    async def startup_check(client, message):
+        # Initialize services on first message
+        if not hasattr(app, '_services_initialized'):
+            await init_services()
+            app._services_initialized = True
+            
+            # Set bot username
+            import utils
+            me = await client.get_me()
+            utils.set_bot_username(me.username)
+            print(f"🎉 Bot: @{me.username}")
+            print(f"👤 Owner: {OWNER_ID}")
+            print(f"🌐 Using {'Mock API' if api_client.use_mock else 'Real API'}")
+            print("=" * 50)
+            print("🚀 Bot is processing messages!")
+            print("=" * 50)
+        
+        # Continue propagation to other handlers
+        raise StopPropagation
     
-    async with app:
-        # Get bot info
-        me = await app.get_me()
-        print(f"🎉 Bot started successfully!")
-        print(f"📛 Bot Name: {me.first_name}")
-        print(f"🆔 Bot Username: @{me.username}")
-        print(f"👤 Owner ID: {OWNER_ID}")
-        print(f"🌐 Using {'Mock API' if api_client.use_mock else 'Real API'}")
-        print(f"⏰ Started at: {bot_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 50)
-        print("🚀 Bot is now running! Press Ctrl+C to stop.")
-        print("=" * 50)
-        
-        # Set bot username in utils (for buttons)
-        import utils
-        utils.set_bot_username(me.username)
-        
-        # Keep the bot running
-        await asyncio.Event().wait()
+    # Run the bot
+    print("✅ Starting bot...")
+    app.run()
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")
     except Exception as e:
