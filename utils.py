@@ -9,18 +9,28 @@ from datetime import datetime
 import os
 
 # Bot constants
-BOT_USERNAME = os.getenv("BOT_USERNAME", "your_bot")
 OWNER_USERNAME = "TheGodOfTgBot"
 UPDATES_CHANNEL = "aimaibotupdates"
 
-def get_start_buttons():
+# Global bot username - set by main.py after bot starts
+_bot_username = None
+
+def set_bot_username(username: str):
+    """Set bot username globally for use in buttons"""
+    global _bot_username
+    _bot_username = username
+
+def get_start_buttons(bot_username: str = None):
     """
     Get inline keyboard for /start command
     /start कमांड के लिए इनलाइन बटन
     """
+    if not bot_username:
+        bot_username = _bot_username or os.getenv("BOT_USERNAME", "your_bot")
+    
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ मुझे अपने ग्रुप में जोड़ें", 
-                             url=f"https://t.me/{BOT_USERNAME}?startgroup=true")],
+                             url=f"https://t.me/{bot_username}?startgroup=true")],
         [InlineKeyboardButton("👤 Bot Owner से मिलें", 
                              url=f"https://t.me/{OWNER_USERNAME}")],
         [InlineKeyboardButton("📢 Bot Updates के लिए Join करें", 
@@ -36,7 +46,7 @@ def get_solution_button(url: str):
         [InlineKeyboardButton("📖 विस्तृत समाधान देखें | See Detailed Solution", url=url)]
     ])
 
-def get_force_join_button(chat_username: str, chat_title: str, chat_type: str):
+def get_force_join_button(chat_username: str, chat_title: str, chat_type: str, bot_username: str = None):
     """
     Get force join button for gating
     Force join के लिए बटन
@@ -50,7 +60,9 @@ def get_force_join_button(chat_username: str, chat_title: str, chat_type: str):
     else:
         # If no username, can't create direct link
         # Bot should be able to export invite link
-        url = f"https://t.me/{BOT_USERNAME}"
+        if not bot_username:
+            bot_username = _bot_username or os.getenv("BOT_USERNAME", "your_bot")
+        url = f"https://t.me/{bot_username}"
     
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(f"✅ {chat_title} Join करें", url=url)]

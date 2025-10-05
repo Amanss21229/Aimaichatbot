@@ -22,8 +22,6 @@ from admin_commands import register_admin_handlers
 # Environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 OWNER_ID = os.getenv("OWNER_ID", "0")
-API_ID = os.getenv("API_ID", "")
-API_HASH = os.getenv("API_HASH", "")
 
 # Bot start time for uptime calculation
 bot_start_time = datetime.now()
@@ -55,11 +53,16 @@ async def main():
     # Create Pyrogram client
     print("🤖 Starting Telegram Bot...")
     
+    # For bot-only mode, we can use a default API ID/Hash or user can provide their own
+    # These are public values for Pyrogram (you can use your own from my.telegram.org)
+    api_id = int(os.getenv("API_ID", "6"))  # Default Pyrogram test value
+    api_hash = os.getenv("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")  # Default Pyrogram test value
+    
     app = Client(
         "neet_ai_bot",
         bot_token=TELEGRAM_BOT_TOKEN,
-        api_id=API_ID if API_ID else None,
-        api_hash=API_HASH if API_HASH else None,
+        api_id=api_id,
+        api_hash=api_hash,
         workers=4
     )
     
@@ -85,8 +88,9 @@ async def main():
         print("🚀 Bot is now running! Press Ctrl+C to stop.")
         print("=" * 50)
         
-        # Update bot username in utils (for buttons)
-        os.environ["BOT_USERNAME"] = me.username
+        # Set bot username in utils (for buttons)
+        import utils
+        utils.set_bot_username(me.username)
         
         # Keep the bot running
         await asyncio.Event().wait()
