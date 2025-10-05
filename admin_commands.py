@@ -8,7 +8,7 @@ import asyncio
 from pyrogram import filters
 from pyrogram.client import Client
 from pyrogram.types import Message
-from pyrogram.handlers import MessageHandler
+from pyrogram.handlers.message_handler import MessageHandler
 from pyrogram.errors import FloodWait, UserIsBlocked, PeerIdInvalid
 import db
 import utils
