@@ -6,7 +6,7 @@ Initialize Pyrogram client, register handlers, start bot
 import os
 import asyncio
 from pyrogram.client import Client
-from pyrogram import StopPropagation
+from pyrogram import StopPropagation, filters
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -27,30 +27,28 @@ OWNER_ID = os.getenv("OWNER_ID", "0")
 # Bot start time for uptime calculation
 bot_start_time = datetime.now()
 
-# Initialize database and API client
-async def init_services():
-    """Initialize database and API client"""
-    print("🔧 Initializing database...")
-    await db.init_db()
-    print("🔧 Initializing API client...")
-    await api_client.init_session()
-
-def main():
+async def main():
     """Main function to run the bot"""
     
     # Check for required environment variables
     if not TELEGRAM_BOT_TOKEN:
         print("❌ Error: TELEGRAM_BOT_TOKEN not found in environment variables!")
-        print("Please set the following in Replit Secrets:")
-        print("- TELEGRAM_BOT_TOKEN")
-        print("- OWNER_ID")
         return
     
     if not OWNER_ID or OWNER_ID == "0":
-        print("⚠️ Warning: OWNER_ID not set! Bot admin features will be limited.")
+        print("⚠️ Warning: OWNER_ID not set!")
+    
+    # Initialize services
+    print("🔧 Initializing database...")
+    await db.init_db()
+    print("✅ Database initialized")
+    
+    print("🔧 Initializing API client...")
+    await api_client.init_session()
+    print("✅ API client initialized")
     
     # Create Pyrogram client
-    print("🤖 Starting Telegram Bot...")
+    print("🤖 Creating Telegram Bot...")
     
     api_id = int(os.getenv("API_ID", "6"))
     api_hash = os.getenv("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")
@@ -63,44 +61,55 @@ def main():
         workers=4
     )
     
+    # Add a simple test handler using decorator
+    @app.on_message(filters.command("test"))
+    async def test_handler(client, message):
+        print(f"🧪 TEST HANDLER triggered by {message.from_user.id}")
+        await message.reply_text("Test handler is working!")
+    
+    @app.on_message(filters.text)
+    async def catch_all_handler(client, message):
+        print(f"🔍 CATCH-ALL: Received message from {message.from_user.id}: {message.text[:50]}")
+    
     # Register all handlers
     print("📝 Registering handlers...")
     register_chat_handlers(app)
     register_group_handlers(app)
     register_admin_handlers(app)
+    print("✅ All handlers registered successfully")
     
-    # Add startup handler
-    @app.on_message()
-    async def startup_check(client, message):
-        # Initialize services on first message
-        if not hasattr(app, '_services_initialized'):
-            await init_services()
-            app._services_initialized = True
-            
-            # Set bot username
-            import utils
-            me = await client.get_me()
-            utils.set_bot_username(me.username)
-            print(f"🎉 Bot: @{me.username}")
-            print(f"👤 Owner: {OWNER_ID}")
-            print(f"🌐 Using {'Mock API' if api_client.use_mock else 'Real API'}")
-            print("=" * 50)
-            print("🚀 Bot is processing messages!")
-            print("=" * 50)
-        
-        # Continue propagation to other handlers
-        raise StopPropagation
+    # Start the bot
+    print("🚀 Starting bot...")
+    await app.start()
     
-    # Run the bot
-    print("✅ Starting bot...")
-    app.run()
+    # Set bot username
+    import utils
+    me = await app.get_me()
+    utils.set_bot_username(me.username)
+    print(f"🎉 Bot: @{me.username}")
+    print(f"👤 Owner: {OWNER_ID}")
+    print(f"🌐 Using {'Mock API' if api_client.use_mock else 'Real API'}")
+    print("=" * 50)
+    print("🚀 Bot is ready and listening for messages!")
+    print("=" * 50)
+    
+    # Keep running with infinite loop
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        print("\n👋 Stopping bot...")
+    finally:
+        await app.stop()
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")
     except Exception as e:
         print(f"❌ Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         print("🔚 Bot shutdown complete")

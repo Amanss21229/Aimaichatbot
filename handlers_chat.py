@@ -81,6 +81,8 @@ async def start_handler(client: Client, message: Message):
     Handle /start command in private chat
     Send welcome message with features and inline buttons
     """
+    print(f"✅ START HANDLER CALLED by user {message.from_user.id}")
+    
     # Add/update user in database
     await db.add_or_update_user(
         uid=message.from_user.id,
@@ -91,6 +93,7 @@ async def start_handler(client: Client, message: Message):
     
     # Check force join
     if not await check_force_join(client, message):
+        print(f"⚠️ Force join check failed for user {message.from_user.id}")
         return
     
     # Log usage
@@ -100,10 +103,12 @@ async def start_handler(client: Client, message: Message):
     welcome_text = utils.format_start_message()
     buttons = utils.get_start_buttons()
     
+    print(f"📤 Sending welcome message to user {message.from_user.id}")
     await message.reply_text(
         welcome_text,
         reply_markup=buttons
     )
+    print(f"✅ Welcome message sent successfully!")
 
 async def question_handler(client: Client, message: Message):
     """
