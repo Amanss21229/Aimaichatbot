@@ -68,11 +68,10 @@ def get_force_join_button(chat_username: str, chat_title: str, chat_type: str, b
         [InlineKeyboardButton(f"✅ {chat_title} Join करें", url=url)]
     ])
 
-def format_start_message():
-    """
-    Format welcome message for /start command in Hindi
-    """
-    return """🎓 **NEET AI Bot में आपका स्वागत है!**
+# Language messages
+MESSAGES = {
+    "hindi": {
+        "start": """🎓 **NEET AI Bot में आपका स्वागत है!**
 
 मैं आपके NEET/JEE के सवालों का जवाब दे सकता हूं। 
 
@@ -87,23 +86,104 @@ def format_start_message():
 2️⃣ या सवाल की फोटो भेजें
 3️⃣ मैं तुरंत short answer दूंगा + detailed solution का link
 
+Language बदलने के लिए /lang टाइप करें
 नीचे के बटन से मुझे अपने ग्रुप में add करें! 👇
 
-— NEET AI Bot ✨"""
+— NEET AI Bot ✨""",
+        "question_too_long": "❌ सवाल बहुत लंबा है! कृपया 2000 characters से कम में लिखें।",
+        "finding_answer": "🔍 जवाब ढूंढ रहा हूं...",
+        "error_occurred": "❌ क्षमा करें, कुछ गड़बड़ हुई। कृपया फिर से try करें।",
+        "processing_image": "📸 इमेज प्रोसेस कर रहा हूं...",
+        "image_error": "❌ इमेज प्रोसेस नहीं हो सकी। Text में सवाल भेजें।",
+        "question": "❓ सवाल:",
+        "answer": "✅ जवाब:"
+    },
+    "english": {
+        "start": """🎓 **Welcome to NEET AI Bot!**
 
-def format_answer_message(question: str, answer: str):
+I can answer your NEET/JEE questions instantly.
+
+**📚 Features:**
+• Instant answers to Physics, Chemistry, Biology, and Math questions
+• Short answer + detailed solution website link
+• Works in groups too - reply to any message with /sol
+• 24/7 Available
+
+**💡 How to use:**
+1️⃣ Just type your question
+2️⃣ Or send a photo of your question
+3️⃣ I'll instantly give you a short answer + detailed solution link
+
+Type /lang to change language
+Add me to your group using the button below! 👇
+
+— NEET AI Bot ✨""",
+        "question_too_long": "❌ Question is too long! Please keep it under 2000 characters.",
+        "finding_answer": "🔍 Finding answer...",
+        "error_occurred": "❌ Sorry, something went wrong. Please try again.",
+        "processing_image": "📸 Processing image...",
+        "image_error": "❌ Could not process image. Please send question as text.",
+        "question": "❓ Question:",
+        "answer": "✅ Answer:"
+    },
+    "hinglish": {
+        "start": """🎓 **NEET AI Bot mein aapka swagat hai!**
+
+Main aapke NEET/JEE ke sawaalon ka jawab de sakta hoon.
+
+**📚 Features:**
+• Kisi bhi Physics, Chemistry, Biology ya Math ke sawal ka turant jawab
+• Short answer + detailed solution ki website link
+• Group mein bhi kaam karta hoon - kisi message ko reply karke /sol type karein
+• 24/7 Available
+
+**💡 Kaise use karein:**
+1️⃣ Bas apna sawal type karein
+2️⃣ Ya sawal ki photo bhejein
+3️⃣ Main turant short answer dunga + detailed solution ka link
+
+Language change karne ke liye /lang type karein
+Neeche ke button se mujhe apne group mein add karein! 👇
+
+— NEET AI Bot ✨""",
+        "question_too_long": "❌ Sawal bahut lamba hai! Kripya 2000 characters se kam mein likhein.",
+        "finding_answer": "🔍 Jawab dhoond raha hoon...",
+        "error_occurred": "❌ Sorry, kuch gadbad hui. Please fir se try karein.",
+        "processing_image": "📸 Image process kar raha hoon...",
+        "image_error": "❌ Image process nahi ho saki. Text mein sawal bhejein.",
+        "question": "❓ Sawal:",
+        "answer": "✅ Jawab:"
+    }
+}
+
+def format_start_message(lang="hindi"):
+    """
+    Format welcome message for /start command
+    """
+    return MESSAGES.get(lang, MESSAGES["hindi"])["start"]
+
+def format_answer_message(question: str, answer: str, lang="hindi"):
     """
     Format answer message with branding
     """
     # Truncate question if too long
     q_display = question[:100] + "..." if len(question) > 100 else question
     
-    return f"""**❓ सवाल:** {q_display}
+    q_label = MESSAGES.get(lang, MESSAGES["hindi"])["question"]
+    a_label = MESSAGES.get(lang, MESSAGES["hindi"])["answer"]
+    
+    return f"""**{q_label}** {q_display}
 
-**✅ जवाब:**
+**{a_label}**
 {answer}
 
 — NEET AI Bot ✨"""
+
+def get_message(key: str, lang="hindi") -> str:
+    """
+    Get a message in specified language
+    """
+    return MESSAGES.get(lang, MESSAGES["hindi"]).get(key, "")
 
 def format_stats_message(stats: dict, uptime: str):
     """
