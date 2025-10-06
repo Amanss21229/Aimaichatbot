@@ -71,6 +71,39 @@ async def check_force_join(client: Client, message: Message) -> bool:
     
     return True
 
+async def lang_handler(client: Client, message: Message):
+    """
+    Handle /lang command - let user choose language
+    """
+    from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    # Add/update user
+    await db.add_or_update_user(
+        uid=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+    
+    # Get current language
+    current_lang = await db.get_user_language(message.from_user.id)
+    
+    # Language selection buttons
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🇮🇳 हिंदी", callback_data="lang_hindi")],
+        [InlineKeyboardButton("🇬🇧 English", callback_data="lang_english")],
+        [InlineKeyboardButton("🔄 Hinglish", callback_data="lang_hinglish")]
+    ])
+    
+    lang_text = f"""🌐 **Language Selection / भाषा चुनें**
+
+Current Language: **{current_lang.title()}**
+
+Please select your preferred language:
+कृपया अपनी पसंदीदा भाषा चुनें:"""
+    
+    await message.reply_text(lang_text, reply_markup=keyboard)
+
 async def start_handler(client: Client, message: Message):
     """
     Handle /start command in private chat
@@ -94,8 +127,11 @@ async def start_handler(client: Client, message: Message):
     # Log usage
     await db.log_usage(message.from_user.id, cmd="/start")
     
+    # Get user's language
+    user_lang = await db.get_user_language(message.from_user.id)
+    
     # Send welcome message
-    welcome_text = utils.format_start_message()
+    welcome_text = utils.format_start_message(user_lang)
     buttons = utils.get_start_buttons()
     
     print(f"📤 Sending welcome message to user {message.from_user.id}")
@@ -256,9 +292,43 @@ async def image_handler(client: Client, message: Message):
             f"Error processing image: {str(e)}"
         )
 
+async def lang_callback_handler(client: Client, callback_query):
+    """
+    Handle language selection callbacks
+    """
+    from pyrogram.types import CallbackQuery
+    
+    data = callback_query.data
+    uid = callback_query.from_user.id
+    
+    # Extract language from callback data
+    if data.startswith("lang_"):
+        lang = data.replace("lang_", "")
+        
+        # Update user language
+        await db.set_user_language(uid, lang)
+        
+        # Language confirmation messages
+        lang_msgs = {
+            "hindi": "✅ भाषा बदल दी गई! अब सभी messages हिंदी में होंगे।",
+            "english": "✅ Language changed! All messages will now be in English.",
+            "hinglish": "✅ Language change ho gayi! Ab sab messages Hinglish mein honge."
+        }
+        
+        await callback_query.answer(lang_msgs.get(lang, "✅ Language updated!"), show_alert=True)
+        
+        # Update the message
+        await callback_query.message.edit_text(
+            f"🌐 {lang_msgs.get(lang, 'Language updated!')}\n\nType /start to see changes."
+        )
+
 def register_chat_handlers(app: Client):
     """Register all private chat handlers"""
+    from pyrogram.handlers import CallbackQueryHandler
+    
+    app.add_handler(MessageHandler(lang_handler, filters.command("lang") & filters.private))
     app.add_handler(MessageHandler(start_handler, filters.command("start") & filters.private))
-    app.add_handler(MessageHandler(question_handler, filters.text & filters.private & ~filters.command(["start"])))
+    app.add_handler(MessageHandler(question_handler, filters.text & filters.private & ~filters.command(["start", "lang"])))
     app.add_handler(MessageHandler(image_handler, filters.photo & filters.private))
+    app.add_handler(CallbackQueryHandler(lang_callback_handler, filters.regex("^lang_")))
     print("✅ Chat handlers registered")
