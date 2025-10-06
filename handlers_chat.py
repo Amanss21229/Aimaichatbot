@@ -71,11 +71,6 @@ async def check_force_join(client: Client, message: Message) -> bool:
     
     return True
 
-@filters.create
-async def private_filter(_, __, message: Message):
-    """Filter for private messages only"""
-    return message.chat.type == "private"
-
 async def start_handler(client: Client, message: Message):
     """
     Handle /start command in private chat
@@ -263,7 +258,7 @@ async def image_handler(client: Client, message: Message):
 
 def register_chat_handlers(app: Client):
     """Register all private chat handlers"""
-    app.add_handler(MessageHandler(start_handler, filters.command("start") & private_filter))
-    app.add_handler(MessageHandler(question_handler, filters.text & private_filter & ~filters.command(["start"])))
-    app.add_handler(MessageHandler(image_handler, filters.photo & private_filter))
+    app.add_handler(MessageHandler(start_handler, filters.command("start") & filters.private))
+    app.add_handler(MessageHandler(question_handler, filters.text & filters.private & ~filters.command(["start"])))
+    app.add_handler(MessageHandler(image_handler, filters.photo & filters.private))
     print("✅ Chat handlers registered")
