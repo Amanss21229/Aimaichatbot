@@ -146,6 +146,10 @@ async def question_handler(client: Client, message: Message):
     Handle text questions in private chat
     Call API and send short answer with detailed solution button
     """
+    # Skip if message is a command (starts with /)
+    if message.text.startswith('/'):
+        return
+    
     # Add/update user
     await db.add_or_update_user(
         uid=message.from_user.id,
@@ -319,9 +323,17 @@ def register_chat_handlers(app: Client):
     """Register all private chat handlers"""
     from pyrogram.handlers import CallbackQueryHandler
     
+    # Register commands first (higher priority)
     app.add_handler(MessageHandler(lang_handler, filters.command("lang") & filters.private))
     app.add_handler(MessageHandler(start_handler, filters.command("start") & filters.private))
-    app.add_handler(MessageHandler(question_handler, filters.text & filters.private & ~filters.command(["start", "lang"])))
+    
+    # Question handler - will skip commands internally
+    app.add_handler(MessageHandler(question_handler, filters.text & filters.private))
+    
+    # Image handler
     app.add_handler(MessageHandler(image_handler, filters.photo & filters.private))
+    
+    # Callback handler for language selection
     app.add_handler(CallbackQueryHandler(lang_callback_handler, filters.regex("^lang_")))
+    
     print("✅ Chat handlers registered")

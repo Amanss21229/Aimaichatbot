@@ -53,15 +53,31 @@ async def get_mock_answer(question: str, uid: int, mode: str = "short") -> Dict[
     Returns:
         Dict with short_answer, detailed_url, solution_id
     """
-    # Pick a random mock response
-    response = random.choice(MOCK_RESPONSES)
+    # Try to match question with mock responses based on keywords
+    question_lower = question.lower()
+    
+    # Search for relevant mock response
+    matched_response = None
+    for resp in MOCK_RESPONSES:
+        resp_keywords = resp["question"].lower().split()
+        if any(keyword in question_lower for keyword in resp_keywords if len(keyword) > 3):
+            matched_response = resp
+            break
+    
+    # If no match found, use a generic response
+    if not matched_response:
+        matched_response = {
+            "short_answer": "यह Mock API में चल रहा है। Real API के लिए WEBSITE_API_URL और WEBSITE_API_KEY secrets add करें।\n\nThis is running in Mock API mode. To use real API, add WEBSITE_API_URL and WEBSITE_API_KEY secrets.",
+            "detailed_url": "https://example.com/solution/mock-mode",
+            "solution_id": "mock_001"
+        }
     
     return {
         "success": True,
         "question": question[:100] + "..." if len(question) > 100 else question,
-        "short_answer": response["short_answer"],
-        "detailed_url": response["detailed_url"],
-        "solution_id": response["solution_id"],
+        "short_answer": matched_response["short_answer"],
+        "detailed_url": matched_response["detailed_url"],
+        "solution_id": matched_response["solution_id"],
         "mode": mode,
         "uid": uid
     }
