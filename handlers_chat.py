@@ -158,16 +158,16 @@ async def question_handler(client: Client, message: Message):
     if not await check_force_join(client, message):
         return
     
+    # Get user's language
+    user_lang = await db.get_user_language(message.from_user.id)
+    
     # Validate question length
     if len(message.text) > 2000:
-        await message.reply_text(
-            "❌ सवाल बहुत लंबा है! कृपया 2000 characters से कम में लिखें।\n\n"
-            "Question too long! Please keep it under 2000 characters."
-        )
+        await message.reply_text(utils.get_message("question_too_long", user_lang))
         return
     
     # Send processing message
-    processing_msg = await message.reply_text("🔍 जवाब ढूंढ रहा हूं... | Finding answer...")
+    processing_msg = await message.reply_text(utils.get_message("finding_answer", user_lang))
     
     try:
         # Get answer from API
@@ -184,7 +184,8 @@ async def question_handler(client: Client, message: Message):
             # Format answer
             answer_text = utils.format_answer_message(
                 question=message.text,
-                answer=result['short_answer']
+                answer=result['short_answer'],
+                lang=user_lang
             )
             
             # Create solution button
@@ -205,10 +206,7 @@ async def question_handler(client: Client, message: Message):
             await db.increment_user_questions(message.from_user.id)
         
         else:
-            await message.reply_text(
-                "❌ क्षमा करें, कुछ गड़बड़ हुई। कृपया फिर से try करें।\n\n"
-                "Sorry, something went wrong. Please try again."
-            )
+            await message.reply_text(utils.get_message("error_occurred", user_lang))
     
     except FloodWait as e:
         await asyncio.sleep(e.value)
@@ -219,10 +217,7 @@ async def question_handler(client: Client, message: Message):
     except Exception as e:
         print(f"Error in question handler: {e}")
         await processing_msg.delete()
-        await message.reply_text(
-            "❌ क्षमा करें, error आ गई। बाद में try करें।\n\n"
-            f"Error: {str(e)}"
-        )
+        await message.reply_text(utils.get_message("error_occurred", user_lang))
 
 async def image_handler(client: Client, message: Message):
     """
@@ -241,8 +236,11 @@ async def image_handler(client: Client, message: Message):
     if not await check_force_join(client, message):
         return
     
+    # Get user's language
+    user_lang = await db.get_user_language(message.from_user.id)
+    
     # Send processing message
-    processing_msg = await message.reply_text("📸 इमेज प्रोसेस कर रहा हूं... | Processing image...")
+    processing_msg = await message.reply_text(utils.get_message("processing_image", user_lang))
     
     try:
         # Download image
@@ -258,7 +256,8 @@ async def image_handler(client: Client, message: Message):
             # Format answer
             answer_text = utils.format_answer_message(
                 question="Image Question",
-                answer=result['short_answer']
+                answer=result['short_answer'],
+                lang=user_lang
             )
             
             # Create solution button
@@ -279,18 +278,12 @@ async def image_handler(client: Client, message: Message):
             await db.increment_user_questions(message.from_user.id)
         
         else:
-            await message.reply_text(
-                "❌ इमेज प्रोसेस नहीं हो सकी। Text में सवाल भेजें।\n\n"
-                "Could not process image. Please send question as text."
-            )
+            await message.reply_text(utils.get_message("image_error", user_lang))
     
     except Exception as e:
         print(f"Error in image handler: {e}")
         await processing_msg.delete()
-        await message.reply_text(
-            "❌ इमेज प्रोसेस करने में error। बाद में try करें।\n\n"
-            f"Error processing image: {str(e)}"
-        )
+        await message.reply_text(utils.get_message("error_occurred", user_lang))
 
 async def lang_callback_handler(client: Client, callback_query):
     """
