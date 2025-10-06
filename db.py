@@ -26,7 +26,8 @@ async def init_db():
                 last_name TEXT,
                 last_seen TIMESTAMP,
                 total_questions INTEGER DEFAULT 0,
-                joined_at TIMESTAMP
+                joined_at TIMESTAMP,
+                language TEXT DEFAULT 'hindi'
             )
         """)
         
@@ -85,6 +86,15 @@ async def init_db():
         """)
         
         await db.commit()
+        
+        # Migration: Add language column if it doesn't exist
+        try:
+            await db.execute("SELECT language FROM users LIMIT 1")
+        except:
+            await db.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'hindi'")
+            await db.commit()
+            print("🔄 Added language column to existing users")
+        
         print("✅ Database initialized successfully")
 
 # ==================== USER OPERATIONS ====================
@@ -112,6 +122,22 @@ async def increment_user_questions(uid: int):
             WHERE uid = ?
         """, (uid,))
         await db.commit()
+
+async def set_user_language(uid: int, language: str):
+    """Set user's preferred language"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE users SET language = ?
+            WHERE uid = ?
+        """, (language, uid))
+        await db.commit()
+
+async def get_user_language(uid: int) -> str:
+    """Get user's preferred language, default to hindi"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT language FROM users WHERE uid = ?", (uid,)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row and row[0] else 'hindi'
 
 async def get_all_users() -> List[Dict]:
     """Get all users for broadcasting"""
